@@ -17,7 +17,7 @@
     <i>Tested on Rider 2026.2 with Claude Code. Works with the classic terminal (JediTerm), which Rider uses for Claude Code tabs; in the newer reworked terminal it stays inactive. Reads the terminal through its non-public classes, isolated in one adapter: if a future IDE changes them, the plugin switches itself off instead of failing.</i>
     ]]></description>
 
-    <change-notes><![CDATA[1.0.0: first Marketplace release, plugin icon. Clicking an empty prompt no longer accepts Claude Code's suggestion.]]></change-notes>
+    <change-notes><![CDATA[1.0.1: requires IDE 2025.3 or newer (2025.2 lacks an API the plugin uses).<br/>1.0.0: first Marketplace release, plugin icon. Clicking an empty prompt no longer accepts Claude Code's suggestion.]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 
