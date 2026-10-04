@@ -13,7 +13,11 @@
     The terminal only forwards keys to the program, so the plugin types the arrow keys and
     Backspaces you would otherwise press by hand, checking where the caret went after each step.
     It never presses Up on the prompt's first row, where Up would recall history.
+    <br/><br/>
+    <i>Tested on Rider 2026.2 with Claude Code. Works with the classic terminal (JediTerm), which Rider uses for Claude Code tabs; in the newer reworked terminal it stays inactive. Reads the terminal through its non-public classes, isolated in one adapter: if a future IDE changes them, the plugin switches itself off instead of failing.</i>
     ]]></description>
+
+    <change-notes><![CDATA[1.0.0: first Marketplace release, plugin icon. Clicking an empty prompt no longer accepts Claude Code's suggestion.]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 
