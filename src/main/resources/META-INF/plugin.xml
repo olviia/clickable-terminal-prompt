@@ -1,0 +1,24 @@
+<idea-plugin>
+    <id>io.github.olviia.clickable-terminal-prompt</id>
+    <name>Clickable Terminal Prompt</name>
+    <vendor url="https://github.com/olviia/clickable-terminal-prompt">Olviia Stroivans</vendor>
+
+    <description><![CDATA[
+    Edit the prompt of a terminal program with the mouse, like in an editor. Made for Claude Code
+    and other CLI agents, also works on a plain shell prompt.
+    <ul>
+        <li><b>Click</b> in the prompt to move the caret there.</li>
+        <li><b>Select</b> text in the prompt and press <b>Backspace</b> or <b>Delete</b> to remove it.</li>
+    </ul>
+    The terminal only forwards keys to the program, so the plugin types the arrow keys and
+    Backspaces you would otherwise press by hand, checking where the caret went after each step.
+    It never presses Up on the prompt's first row, where Up would recall history.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <applicationListeners>
+        <listener class="io.github.olviia.clickableprompt.TerminalMouseWatcher"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+</idea-plugin>
