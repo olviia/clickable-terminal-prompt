@@ -27,6 +27,12 @@ tasks.test { useJUnitPlatform() }
 
 intellijPlatform {
     buildSearchableOptions = false
+    pluginVerification {
+        ides {
+            val localPath = providers.gradleProperty("platformLocalPath").orNull
+            if (!localPath.isNullOrBlank()) local(file(localPath)) else recommended()
+        }
+    }
     pluginConfiguration {
         version = project.version.toString()
         ideaVersion {
