@@ -40,7 +40,7 @@ final class PromptEditor {
             LOG.debug("click " + target + " caret=" + (prompt == null ? null : prompt.caret)
                     + " box=" + (prompt == null ? null : prompt.box));
             if (prompt == null || !prompt.box.contains(target)) return;
-            Cell goal = prompt.box.clamp(target, prompt.lines);
+            Cell goal = prompt.box.clamp(target, screen.typedLines(prompt.lines, prompt.box, prompt.caret));
             LOG.debug("move caret " + prompt.caret + " -> " + goal + " box=" + prompt.box);
             walk(id, screen, prompt, goal);
         }));
@@ -52,8 +52,9 @@ final class PromptEditor {
         ApplicationManager.getApplication().executeOnPooledThread(() -> run(id, () -> {
             Prompt prompt = Prompt.read(screen);
             if (prompt == null) return;
-            Cell from = prompt.box.clamp(start, prompt.lines);
-            Cell to = prompt.box.clamp(end, prompt.lines);
+            List<String> typed = screen.typedLines(prompt.lines, prompt.box, prompt.caret);
+            Cell from = prompt.box.clamp(start, typed);
+            Cell to = prompt.box.clamp(end, typed);
             LOG.debug("delete " + from + " .. " + to + " caret=" + prompt.caret + " box=" + prompt.box);
             lastDeletion = new Deletion(from, PromptBox.textBetween(prompt.lines, from, to, prompt.box));
             prompt = walk(id, screen, prompt, to);

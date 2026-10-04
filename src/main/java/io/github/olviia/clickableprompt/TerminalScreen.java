@@ -6,6 +6,8 @@ import javax.swing.SwingUtilities;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The one door to the IDE's terminal (JediTerm): reads the screen, the caret and the selection,
@@ -78,6 +80,57 @@ final class TerminalScreen {
         return lines;
     }
 
+    /**
+     * {@code lines} with only what the user typed inside {@code box}: dimmed cells (a suggestion
+     * shown in an empty prompt, like Claude Code's) become spaces, and so does a highlighted
+     * caret cell that only starts such a suggestion. Clicking there must not send arrow keys,
+     * because Right accepts the suggestion.
+     */
+    List<String> typedLines(List<String> lines, PromptBox box, Cell caret) {
+        List<String> typed = new ArrayList<>(lines);
+        Object buffer = call(widget, "getTerminalTextBuffer");
+        Object dim = option("DIM");
+        Object inverse = option("INVERSE");
+        call(buffer, "lock");
+        try {
+            for (int row = box.top(); row <= box.bottom(); row++) {
+                Object line = call(buffer, "getLine", row);
+                char[] chars = lines.get(row).toCharArray();
+                boolean[] dimmed = new boolean[chars.length];
+                for (int col = 0; col < chars.length; col++) {
+                    dimmed[col] = has(call(line, "getStyleAt", col), dim);
+                    if (dimmed[col]) chars[col] = ' ';
+                }
+                int c = caret.col();
+                if (row == caret.row() && c < chars.length && has(call(line, "getStyleAt", c), inverse)
+                        && new String(chars, c + 1, chars.length - c - 1).isBlank()
+                        && (c + 1 < chars.length && dimmed[c + 1])) {
+                    chars[c] = ' ';
+                }
+                typed.set(row, new String(chars));
+            }
+        } finally {
+            call(buffer, "unlock");
+        }
+        return typed;
+    }
+
+    /** A constant of JediTerm's TextStyle.Option, or null when this JediTerm has no such option. */
+    private Object option(String name) {
+        try {
+            Object style = call(call(widget, "getTerminalTextBuffer"), "getStyleAt", 0, 0);
+            Class<?> type = Class.forName("com.jediterm.terminal.TextStyle$Option", false, style.getClass().getClassLoader());
+            for (Object constant : type.getEnumConstants()) if (((Enum<?>) constant).name().equals(name)) return constant;
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // no such option: treat no cell as having it
+        }
+        return null;
+    }
+
+    private static boolean has(Object style, Object option) {
+        return style != null && option != null && Boolean.TRUE.equals(call(style, "hasOption", option));
+    }
+
     /** The selected cells as {start, end} in reading order (end exclusive), or null without a selection. */
     Cell[] selection() {
         Object selection = call(panel, "getSelection");
@@ -117,14 +170,24 @@ final class TerminalScreen {
     /** Calls the method {@code name} on {@code target}, searching its class hierarchy, private included. */
     private static Object call(Object target, String name, Object... args) {
         if (target == null) return null;
-        for (Class<?> c = target.getClass(); c != null; c = c.getSuperclass()) {
+        Method m = METHODS.computeIfAbsent(target.getClass().getName() + "#" + name + "/" + args.length,
+                key -> find(target.getClass(), name, args.length));
+        try {
+            return m.invoke(target, args);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw new IllegalStateException("terminal call " + name + " failed", e);
+        }
+    }
+
+    /** Looked-up methods by "class#name/arity"; the lookup walks the hierarchy, so it is cached. */
+    private static final Map<String, Method> METHODS = new ConcurrentHashMap<>();
+
+    private static Method find(Class<?> type, String name, int arity) {
+        for (Class<?> c = type; c != null; c = c.getSuperclass()) {
             for (Method m : c.getDeclaredMethods()) {
-                if (!m.getName().equals(name) || m.getParameterCount() != args.length) continue;
-                try {
+                if (m.getName().equals(name) && m.getParameterCount() == arity) {
                     m.setAccessible(true);
-                    return m.invoke(target, args);
-                } catch (ReflectiveOperationException | RuntimeException e) {
-                    throw new IllegalStateException("terminal call " + name + " failed", e);
+                    return m;
                 }
             }
         }
